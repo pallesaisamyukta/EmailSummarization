@@ -6,7 +6,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from dotenv import load_dotenv
 import os
-import google.generativeai as genai
+import torch
+from transformers import BartForConditionalGeneration, BartTokenizer
 
 # Load environment variables from a .env file for security and convenience
 load_dotenv()
@@ -14,17 +15,14 @@ load_dotenv()
 # Retrieve necessary credentials and API keys from environment variables
 email_address = os.getenv("EMAIL_ADDRESS")
 email_password = os.getenv("EMAIL_PASSWORD")
-gemini_api_key = os.getenv("GEMINI_API_KEY")
 
-# Configure the Google Gemini API with the retrieved API key
-genai.configure(api_key=gemini_api_key)
 
 class EmailTLDR:
     """
     A class for summarizing emails received over a specified period and sending a summary via email.
     """
     
-    def __init__(self, email_address, email_password, gemini_api_key):
+    def __init__(self, email_address, email_password):
         """
         Initializes the EmailTLDR object with email credentials and configures the Google Gemini API.
         
@@ -38,6 +36,7 @@ class EmailTLDR:
         self.mail = imaplib.IMAP4_SSL("imap.gmail.com")
         self.sender_email = self.email_address
         self.recipient_email = self.email_address
+        self.model_path = '/Users/mrinoyb2/git/EmailSummarization/models/fine-tuned_bart_model.pt'
         self.connect_to_email()
 
     def connect_to_email(self):
@@ -47,7 +46,7 @@ class EmailTLDR:
         self.mail.login(self.email_address, self.email_password)
         self.mail.select('"[Gmail]/All Mail"')
 
-    def fetch_emails_since(self, days_ago=7):
+    def fetch_emails_since(self, days_ago=4):
         """
         Fetches emails from the last specified number of days.
         
@@ -109,9 +108,9 @@ class EmailTLDR:
         """
         return body.replace("\r", "").replace("\n", "").replace("\u200c", "")
 
-    def generate_summary(self, email_bodies):
+    def generate_summary(self, email_bodies, model_path):
         """
-        Generates a summary of the provided email bodies using the Gemini AI model.
+        Generates a summary of the provided email bodies using the finetuned BART model.
         
         Parameters:
         - email_bodies: A list of email bodies as strings.
@@ -119,17 +118,17 @@ class EmailTLDR:
         Returns:
         - A string containing the summary of the emails.
         """
-        prompt = ("Here's a snapshot of your inbox from the past week, compiled for a quick read. "
-                  "This summary includes key updates, tasks, and any actionable items from your emails. "
-                  "It's designed to give you a clear, concise overview without the fluff, focusing on what matters most. "
-                  "Please distill the essence of these emails into a digestible format, organized by relevance and theme, "
-                  "with a limit of 5 main points. Conclude the summary with a 'Best, Email-TLDR' signature.")
+        prompt = ("")
         prompt += " : " + " ".join(email_bodies[:5])  # Limit to first 5 for brevity
-        model = genai.GenerativeModel('gemini-pro')
-        response = model.generate_content(prompt)
-        if not response.text:
-            return "Sorry, I don't have an answer for that."
-        return response.text
+        print(prompt)
+        # Specify to load the model to CPU
+        model = BartForConditionalGeneration.from_pretrained('facebook/bart-base', 
+                                                            state_dict=torch.load(model_path, map_location=torch.device('cpu')))
+        tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
+        inputs = tokenizer([prompt], return_tensors="pt", max_length=1024, truncation=True)
+        summary_ids = model.generate(inputs['input_ids'], num_beams=4, max_length=200, early_stopping=True)
+        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        return summary
 
     def send_email(self, body):
         """
@@ -156,9 +155,9 @@ class EmailTLDR:
         """
         email_ids = self.fetch_emails_since()
         email_bodies = self.extract_email_bodies(email_ids)
-        summary = self.generate_summary(email_bodies)
+        summary = self.generate_summary(email_bodies, self.model_path)
         self.send_email(summary)
 
 if __name__ == "__main__":
-    tldr = EmailTLDR(email_address, email_password, gemini_api_key)
+    tldr = EmailTLDR(email_address, email_password)
     tldr.summarize_and_send()
