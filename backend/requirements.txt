@@ -1,0 +1,7 @@
+transformers
+datasets
+torch
+rouge-score
+fastapi[all]
+tqdm
+scikit-learn
