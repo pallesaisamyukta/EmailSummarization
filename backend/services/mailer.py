@@ -1,3 +1,4 @@
+import re
 import imaplib
 import email
 from datetime import datetime, timedelta
@@ -6,7 +7,25 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import torch
+
+from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
+
+# Function to clean and extract text from HTML
+
+
+def clean_and_extract_text(html_list):
+    cleaned_texts = []
+    for html in html_list:
+        soup = BeautifulSoup(html, "lxml")  # Parse the HTML
+        # Extract text, separate with space, strip whitespace
+        text = soup.get_text(separator=' ', strip=True)
+        # Replace multiple whitespaces with a single space
+        text = re.sub(r'\s+', ' ', text)
+        text = text.strip()
+        text = text.lower()
+        cleaned_texts.append(text)
+    return cleaned_texts
 
 
 class EmailTLDR:
@@ -36,7 +55,7 @@ class EmailTLDR:
         Logs into the email server using the provided credentials.
         """
         self.mail.login(self.email_address, self.email_password)
-        self.mail.select('"[Gmail]/All Mail"')
+        self.mail.select('inbox')
 
     def fetch_emails_since(self, days_ago=1):
         """
@@ -113,9 +132,13 @@ class EmailTLDR:
         Returns:
         - A string containing the summary of the emails.
         """
+        # Clean and extract text from the HTML strings
+        # email_bodies = email_bodies[:5]
+        extracted_texts = clean_and_extract_text(email_bodies)
+
         prompt = ("")
         # Limit to first 5 for brevity
-        prompt += " : " + " ".join(email_bodies[:5])
+        prompt += " : " + " ".join(extracted_texts)
         print(prompt)
         # Specify to load the model to CPU
         model = BartForConditionalGeneration.from_pretrained(
