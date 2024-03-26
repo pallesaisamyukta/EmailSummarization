@@ -8,10 +8,6 @@ import os
 import torch
 from transformers import BartForConditionalGeneration, BartTokenizer
 
-# Retrieve necessary credentials and API keys from environment variables
-email_address = os.getenv("EMAIL_ADDRESS")
-email_password = os.getenv("EMAIL_PASSWORD")
-
 
 class EmailTLDR:
     """
@@ -42,7 +38,7 @@ class EmailTLDR:
         self.mail.login(self.email_address, self.email_password)
         self.mail.select('"[Gmail]/All Mail"')
 
-    def fetch_emails_since(self, days_ago=4):
+    def fetch_emails_since(self, days_ago=1):
         """
         Fetches emails from the last specified number of days.
 
