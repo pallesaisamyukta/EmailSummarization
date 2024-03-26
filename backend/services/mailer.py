@@ -181,7 +181,7 @@ class EmailTLDR:
         """
         # Split the body text by newlines, strip each line, and wrap it with <li> tags
         body_lines = body.split('\n')
-        body_items = ['<li>{}</li>'.format(line.strip())
+        body_items = ['<li>{}</li><br />'.format(line.strip())
                       for line in body_lines if line.strip() != '']
         body_html = '<ul>{}</ul>'.format(''.join(body_items))
 
