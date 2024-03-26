@@ -2,7 +2,7 @@
 
 ## Steps to run the API server
 
-```
+```bash
 cd EmailSummarization
 pip install -r requirements.txt
 uvicorn --backend.server:app
@@ -24,3 +24,17 @@ uvicorn --backend.server:app
 
 - Verify Installation:
   After selecting the folder, the extension should now appear in your list of installed extensions. Ensure there are no errors and that the extension is enabled.
+
+## Entrypoint for inference
+
+POST request to `/summarize` like so:
+
+```bash
+curl --request POST \
+  --url http://127.0.0.1:8000/summarize \
+  --header 'Content-Type: application/json' \
+  --data '{
+	"email": "<ENTER_YOUR_EMAIL>",
+	"password": “<ENTER_YOUR_PASSWORD>”
+}'
+```
