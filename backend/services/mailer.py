@@ -1,3 +1,4 @@
+import re
 import imaplib
 import email
 from datetime import datetime, timedelta
@@ -6,11 +7,24 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 import torch
+
+from bs4 import BeautifulSoup
 from transformers import BartForConditionalGeneration, BartTokenizer
 
-# Retrieve necessary credentials and API keys from environment variables
-email_address = os.getenv("EMAIL_ADDRESS")
-email_password = os.getenv("EMAIL_PASSWORD")
+# Function to clean and extract text from HTML
+
+
+def clean_and_extract_text(html_list):
+    cleaned_texts = []
+    for html in html_list:
+        soup = BeautifulSoup(html, "lxml")  # Parse the HTML
+        # Extract text, separate with space, strip whitespace
+        text = soup.get_text(separator=' ', strip=True)
+        # Replace multiple whitespaces with a single space
+        text = re.sub(r'\s+', ' ', text)
+        text = text.strip()
+        cleaned_texts.append(text)
+    return cleaned_texts
 
 
 class EmailTLDR:
@@ -40,9 +54,9 @@ class EmailTLDR:
         Logs into the email server using the provided credentials.
         """
         self.mail.login(self.email_address, self.email_password)
-        self.mail.select('"[Gmail]/All Mail"')
+        self.mail.select('inbox')
 
-    def fetch_emails_since(self, days_ago=4):
+    def fetch_emails_since(self, days_ago=7):
         """
         Fetches emails from the last specified number of days.
 
@@ -117,29 +131,45 @@ class EmailTLDR:
         Returns:
         - A string containing the summary of the emails.
         """
-        prompt = ("")
-        # Limit to first 5 for brevity
-        prompt += " : " + " ".join(email_bodies[:5])
-        print(prompt)
-        # Specify to load the model to CPU
-        model = BartForConditionalGeneration.from_pretrained(
-            'facebook/bart-base',
-            state_dict=torch.load(model_path, map_location=torch.device('cpu'))
-        )
-        tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
-        inputs = tokenizer(
-            [prompt],
-            return_tensors="pt",
-            max_length=1024,
-            truncation=True
-        )
-        summary_ids = model.generate(
-            inputs['input_ids'],
-            num_beams=4,
-            max_length=200,
-            early_stopping=True
-        )
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+        summary_list = []
+        for email_body in email_bodies:
+            if email_body == "":
+                continue
+
+            # Clean and extract text from the HTML strings
+            extracted_texts = clean_and_extract_text([email_body])
+
+            prompt = ("")
+            # Limit to first 5 for brevity
+            prompt += " : " + " ".join(extracted_texts)
+            print(prompt)
+            # Specify to load the model to CPU
+            model = BartForConditionalGeneration.from_pretrained(
+                'facebook/bart-base',
+                state_dict=torch.load(
+                    model_path, map_location=torch.device('cpu'))
+            )
+            tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
+            inputs = tokenizer(
+                [prompt],
+                return_tensors="pt",
+                max_length=1024,
+                truncation=True
+            )
+            summary_ids = model.generate(
+                inputs['input_ids'],
+                num_beams=4,
+                max_length=200,
+                early_stopping=True
+            )
+            summary = tokenizer.decode(
+                summary_ids[0],
+                skip_special_tokens=True
+            )
+            summary = str(summary).replace("\n", " ").strip()
+            summary_list.append(summary)
+
+        summary = "\n\n".join(summary_list)
         return summary
 
     def send_email(self, body):
@@ -149,11 +179,19 @@ class EmailTLDR:
         Parameters:
         - body: The body of the email to be sent.
         """
-        message = MIMEMultipart()
+        # Split the body text by newlines, strip each line, and wrap it with <li> tags
+        body_lines = body.split('\n')
+        body_items = ['<li>{}</li><br />'.format(line.strip())
+                      for line in body_lines if line.strip() != '']
+        body_html = '<ul>{}</ul>'.format(''.join(body_items))
+
+        # 'alternative' for HTML and plain text
+        message = MIMEMultipart('alternative')
         message['From'] = self.sender_email
         message['To'] = self.recipient_email
         message['Subject'] = "Your Weekly Email-TLDR!"
-        message.attach(MIMEText(body, 'plain'))
+        message.attach(MIMEText(body, 'plain'))  # Attach plain text version
+        message.attach(MIMEText(body_html, 'html'))  # Attach HTML version
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
