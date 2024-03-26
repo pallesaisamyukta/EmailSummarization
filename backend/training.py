@@ -3,13 +3,24 @@ import pandas as pd
 from transformers import BartTokenizer, BartForConditionalGeneration, AdamW, get_linear_schedule_with_warmup
 from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm
-from datasets import load_metric
 from sklearn.model_selection import train_test_split
-import torch.nn as nn
 
 
 # Custom dataset class
 class EmailDataset(Dataset):
+    """
+    PyTorch Dataset class for email summarization.
+
+    Parameters:
+    - tokenizer: The tokenizer object.
+    - data: The DataFrame containing the email data.
+    - max_length: The maximum length of the input sequence.
+    - summary_length: The length of the summary sequence.
+
+    Returns:
+    - Dictionary containing the input_ids, attention_mask, and labels.
+    """
+
     def __init__(self, tokenizer, data, max_length=512, summary_length=128):
         self.tokenizer = tokenizer
         self.data = data
@@ -35,30 +46,10 @@ class EmailDataset(Dataset):
         return {key: val.squeeze() for key, val in model_input.items()}
 
 
-# Evaluation function with ROUGE scores
-def evaluate(model, dataloader, tokenizer, device):
-    rouge = load_metric("rouge")
-    model.eval()
-    for batch in dataloader:
-        input_ids = batch['input_ids'].to(device)
-        attention_mask = batch['attention_mask'].to(device)
-        labels = batch['labels'].to(device)
-
-        with torch.no_grad():
-            generated_ids = model.generate(
-                input_ids, attention_mask=attention_mask, max_length=128, num_beams=4, early_stopping=True)
-            preds = [tokenizer.decode(
-                g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in generated_ids]
-            references = [tokenizer.decode(
-                g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in labels]
-
-            rouge.add_batch(predictions=preds, references=references)
-
-    result = rouge.compute()
-    return {key: value.mid.fmeasure * 100 for key, value in result.items()}
-
-
 def train_model():
+    """
+    Function to train the BART model for email summarization.
+    """
     # Load dataset from CSV
     df = pd.read_csv("data/raw/merged_email_data.csv")
 
@@ -84,11 +75,6 @@ def train_model():
         'facebook/bart-base')
     bart_model.to(device)
 
-    # Evaluate before fine-tuning
-    print("Evaluating before fine-tuning...")
-    before_scores = evaluate(bart_model, val_dataloader, tokenizer, device)
-    print(before_scores)
-
     # Prepare optimizer and scheduler
     optimizer = AdamW(bart_model.parameters(), lr=5e-5)
     epochs = 5
@@ -112,12 +98,6 @@ def train_model():
             loss.backward()
             optimizer.step()
             scheduler.step()
-
-    # Evaluate after fine-tuning
-    print("Evaluating after fine-tuning...")
-    after_scores = evaluate(bart_model, val_dataloader)
-    print(after_scores)
-    print("Model evaluation and fine-tuning complete.")
 
     # Save the fine-tuned model
     torch.save(bart_model.state_dict(), "models/email_summarizer_bart.pth")
