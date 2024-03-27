@@ -72,6 +72,38 @@ python main.py
 
 Some of the libraries work only in Linux & MACOS.
 
+
+## Repo Tree
+.
+├── README.md
+├── backend
+│   ├── evaluation.py
+│   ├── server.py
+│   ├── services
+│   │   └── mailer.py
+│   └── training.py
+├── chrome-extension
+│   ├── background.js
+│   ├── images
+│   │   ├── android-chrome-192x192.png
+│   │   ├── android-chrome-512x512.png
+│   │   ├── apple-touch-icon.png
+│   │   ├── favicon-16x16.png
+│   │   ├── favicon-32x32.png
+│   │   └── favicon.ico
+│   ├── manifest.json
+│   ├── package.json
+│   ├── popup.html
+│   └── popup.js
+├── data
+│   └── raw
+│       └── merged_email_data.csv
+├── main.py
+├── notebooks
+│   ├── bartfinetuning.ipynb
+│   └── non_deep_learning.ipynb
+└── requirements.txt
+
 ## Contributors
 * Abhishek Murthy (@rootsec1)
 * Mrinoy Bannerjee (@mrinoybanerjee)
