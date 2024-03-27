@@ -1,6 +1,30 @@
 # EmailSummarization
 
-## Steps to run the API server
+The Email Quagmire: 
+Average individuals spend 2+ hours daily sifting through emails. Missed emails burgeon into daunting threads, consuming even more precious time.
+Major Concerns: 
+1. Time it takes to catch-up
+2. Missing mails
+
+Hence, the aim is to do Abstractive Summarization for all the primary mails in the inbox
+
+## Overview
+This project consits of 2 main parts:
+1. **PyTorch Modeling:** The dataset source is https://www.kaggle.com/datasets/marawanxmamdouh/email-thread-summary-dataset Then, unfroze the last 3 layers for Finetuning the BART Model. The saved model can be accessed here: https://drive.google.com/drive/folders/1eBbly0GhctrEJZHjuOGsd7PorejL2q43?usp=sharing
+
+2. **Chrome Extension:** Through the extension, when a user enters their credentials then the system fetches emails from the user's inbox over the past week, extracts relevant content, generates a concise summary using BART, and sends it back to the user via email.
+
+## Important Directories
+1. ```models```: Store for all the trained models.
+2. ```data/raw```: Store the Kaggle dataset as a csv
+3. ```notebooks/```: Stores all the experimental files for TF-IDF & BART Finetuned jupyter notebooks.
+4. ```backend/```: Store for all the scripts to run the training pipeline: training, evaluation & server. The main.py script is used to trigger the pipeline.
+5. ```chrome-extension/```: Source code for managing & running the extension.
+
+
+## Getting Started
+
+### Steps to run the API server
 
 ```bash
 cd EmailSummarization
@@ -8,7 +32,7 @@ pip install -r requirements.txt
 uvicorn --backend.server:app
 ```
 
-## Loading the Extension into Chrome
+### Loading the Extension into Chrome
 
 - Download and Unzip the Extension:
   First, clone this repository or download the zip file of the extension to your local machine. If downloaded as a zip, extract the contents to a folder of your choice.
@@ -25,7 +49,7 @@ uvicorn --backend.server:app
 - Verify Installation:
   After selecting the folder, the extension should now appear in your list of installed extensions. Ensure there are no errors and that the extension is enabled.
 
-## Entrypoint for inference
+### Entrypoint for inference
 
 POST request to `/summarize` like so:
 
@@ -38,3 +62,17 @@ curl --request POST \
 	"password": “<ENTER_YOUR_PASSWORD>”
 }'
 ```
+
+### How to run training pipeline?
+```
+cd EmailSummarization
+pip install -r requirements.txt
+python main.py
+```
+
+Some of the libraries work only in Linux & MACOS.
+
+## Contributors
+* Abhishek Murthy (@rootsec1)
+* Mrinoy Bannerjee (@mrinoybanerjee)
+* Sai Samyukta Palle (@pallesaisamyukta)
