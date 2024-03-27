@@ -8,6 +8,10 @@ Major Concerns:
 
 Hence, the aim is to do Abstractive Summarization for all the primary mails in the inbox
 
+## Directory Structuring
+<img width="334" alt="Screenshot 2024-03-26 at 11 53 29 PM" src="https://github.com/pallesaisamyukta/EmailSummarization/assets/20264867/1fe1b173-5480-49c8-9951-190ec1e834b6">
+
+
 ## Overview
 This project consits of 2 main parts:
 1. **PyTorch Modeling:** The dataset source is https://www.kaggle.com/datasets/marawanxmamdouh/email-thread-summary-dataset Then, unfroze the last 3 layers for Finetuning the BART Model. The saved model can be accessed here: https://drive.google.com/drive/folders/1eBbly0GhctrEJZHjuOGsd7PorejL2q43?usp=sharing
@@ -71,38 +75,6 @@ python main.py
 ```
 
 Some of the libraries work only in Linux & MACOS.
-
-
-## Repo Tree
-.
-├── README.md
-├── backend
-│   ├── evaluation.py
-│   ├── server.py
-│   ├── services
-│   │   └── mailer.py
-│   └── training.py
-├── chrome-extension
-│   ├── background.js
-│   ├── images
-│   │   ├── android-chrome-192x192.png
-│   │   ├── android-chrome-512x512.png
-│   │   ├── apple-touch-icon.png
-│   │   ├── favicon-16x16.png
-│   │   ├── favicon-32x32.png
-│   │   └── favicon.ico
-│   ├── manifest.json
-│   ├── package.json
-│   ├── popup.html
-│   └── popup.js
-├── data
-│   └── raw
-│       └── merged_email_data.csv
-├── main.py
-├── notebooks
-│   ├── bartfinetuning.ipynb
-│   └── non_deep_learning.ipynb
-└── requirements.txt
 
 ## Contributors
 * Abhishek Murthy (@rootsec1)
