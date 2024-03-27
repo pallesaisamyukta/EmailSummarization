@@ -7,6 +7,7 @@ appnope==0.1.4
 asttokens==2.4.1
 async-timeout==4.0.3
 attrs==23.2.0
+bert-score==0.3.12
 certifi==2024.2.2
 charset-normalizer==3.3.2
 click==8.1.7

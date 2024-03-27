@@ -4,7 +4,7 @@ from transformers import BartTokenizer, BartForConditionalGeneration, AdamW, get
 from torch.utils.data import Dataset, DataLoader
 from tqdm.auto import tqdm
 from sklearn.model_selection import train_test_split
-
+from .evaluation import ModelEvaluator
 
 # Custom dataset class
 class EmailDataset(Dataset):
@@ -52,7 +52,7 @@ def train_model():
     """
     # Load dataset from CSV
     df = pd.read_csv("data/raw/merged_email_data.csv")
-
+    print("Loading Dataset")
     # Initialize tokenizer
     tokenizer = BartTokenizer.from_pretrained('facebook/bart-base')
 
@@ -62,7 +62,8 @@ def train_model():
     # Prepare train and validation datasets
     train_dataset = EmailDataset(tokenizer, train_df)
     val_dataset = EmailDataset(tokenizer, val_df)
-
+    print("Prepared train and validation datasets")
+    
     # Initialize DataLoader for train and validation sets
     # Increased batch size for faster training
     train_dataloader = DataLoader(train_dataset, batch_size=8, shuffle=True)
@@ -98,6 +99,15 @@ def train_model():
             loss.backward()
             optimizer.step()
             scheduler.step()
+
+    # Perform evaluation before fine-tuning to establish a baseline.
+    print("Evaluating before fine-tuning...")
+    # Instantiate the ModelEvaluator class with the model, tokenizer, and device
+    evaluator = ModelEvaluator(bart_model, tokenizer, device)
+    # Now, use the evaluator to evaluate the model on your validation dataloader
+    after_rouge_scores, after_bert_scores = evaluator.evaluate(val_dataloader)
+    print("ROUGE Scores:", after_rouge_scores)
+    print("BERT Scores:", after_bert_scores)        
 
     # Save the fine-tuned model
     torch.save(bart_model.state_dict(), "models/email_summarizer_bart.pth")
